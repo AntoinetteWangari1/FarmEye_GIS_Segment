@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>NDVI Viewer</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- Leaflet and Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
+  <style>
+    html, body { margin: 0; padding: 0; height: 100%; }
+    #map { height: 92vh; width: 100%; }
+    #segmentBtn { margin: 10px; padding: 8px 16px; }
+    .legend {
+      background: white;
+      padding: 10px;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #333;
+    }
+    .legend-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<button id="segmentBtn">Generate NDVI</button>
+<div id="map"></div>
+
+<!-- Leaflet JS and Plugins -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+
+<script>
+let drawnBBox = null;
+let ndviLayer = null;
+
+// Basemaps
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap contributors'
+});
+const esri = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/' +
+  'World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles © Esri, NASA, NGA, USGS'
+});
+
+// Map init
+const map = L.map('map', {
+  center: [-1.29, 36.82],
+  zoom: 15,
+  layers: [osm]
+});
+
+// Draw Control
+const drawnItems = new L.FeatureGroup().addTo(map);
+const drawControl = new L.Control.Draw({
+  draw: {
+    polygon: false, polyline: false, circle: false,
+    marker: false, circlemarker: false, rectangle: true
+  },
+  edit: { featureGroup: drawnItems }
+});
+map.addControl(drawControl);
+
+// Layer Control
+const baseLayers = {
+  'OpenStreetMap': osm,
+  'Esri World Imagery': esri
+};
+const overlays = {};
+const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
+
+// On draw
+map.on(L.Draw.Event.CREATED, function (e) {
+  drawnItems.clearLayers();
+  drawnItems.addLayer(e.layer);
+  drawnBBox = e.layer.getBounds();
+});
+
+// Legend from GeoServer
+const legend = L.control({ position: 'bottomright' });
+legend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'legend');
+  div.innerHTML = `
+    <div class="legend-title">NDVI Legend</div>
+    <img src="http://localhost:8080/geoserver/FarmEyeNDVI/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&format=image/png&layer=FarmEyeNDVI:NDVI_latest" alt="Legend" style="width: 120px; border:1px solid #ccc;">
+  `;
+  return div;
+};
+legend.addTo(map);
+
+// NDVI WMS Request Trigger
+document.getElementById('segmentBtn').addEventListener('click', async () => {
+  if (!drawnBBox) {
+    alert("Please draw a bounding box first.");
+    return;
+  }
+
+  const min_lat = drawnBBox.getSouth();
+  const max_lat = drawnBBox.getNorth();
+  const min_lon = drawnBBox.getWest();
+  const max_lon = drawnBBox.getEast();
+
+  console.log("📦 Sending bbox:", [min_lon, min_lat, max_lon, max_lat]);
+
+  try {
+    const res = await fetch('/run_ndvi', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        min_lat, max_lat, min_lon, max_lon
+      })
+    });
+
+    const data = await res.json();
+    if (data.error) {
+      alert("Error: " + data.error);
+      return;
+    }
+
+    // Remove previous WMS layer
+    if (ndviLayer) {
+      map.removeLayer(ndviLayer);
+      layerControl.removeLayer(ndviLayer);
+    }
+
+    // Add GeoServer NDVI WMS layer
+    ndviLayer = L.tileLayer.wms("http://localhost:8080/geoserver/FarmEyeNDVI/wms", {
+      layers: "FarmEyeNDVI:NDVI_latest",
+      format: "image/png",
+      transparent: true,
+      version: "1.1.0",
+      attribution: "GeoServer NDVI",
+      styles: ""
+    }).addTo(map);
+
+    layerControl.addOverlay(ndviLayer, "NDVI Raster");
+    map.fitBounds([
+      [min_lat, min_lon],
+      [max_lat, max_lon]
+    ]);
+
+  } catch (err) {
+    alert("Request failed: " + err);
+    console.error(err);
+  }
+});
+</script>
+
+</body>
+</html>

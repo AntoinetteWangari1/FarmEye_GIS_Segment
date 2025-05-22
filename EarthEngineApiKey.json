@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "ee-avantgiske",
+  "private_key_id": "f3b8417422670e90310470406f46a4edc3d42c8e",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCOMU4OUA12HXUw\nJ3KiX4T3LZ+SggQ7DRYeCxPanTjp+IF59ONP2d8HsuLdlWbSb/nrB6Jt1e4d+/cW\nysyCAeR0JDsLS7Ku0IJ4CKFaD8pH/x/MIFYpYJ879sf2C4d/7dcu6JHZtBvPNrnF\n9L5W9xDJfa1zwazV2CpdskRIQzECValY5DEFSizNQgjq1ac9Re3kUnS9MGVpyw5u\nx52bHuCY7UO9Fh6NirHB2IdoiJ944A4LD+CSvLT8djUgHAejCOH1/tpj6B7tScWU\nPIX/4etvSUHUiyfV/smP8sGg6Wew/Fc2OtFnMHXBJOTIsUZAbmfHJOI8E2ynXo/K\nTjZRsGqFAgMBAAECggEAIJ5a45mlnOThDyzddTYoUHOc2YUN52X3Huk3orzSY4no\nWcu9oYG/UgrNVDuDnN6nHC1iK4QZ3bMBWa8n/uLkP2hYSx0QXl3isBp6uShKJP33\nk2IPoepSXPUdpem7KbOr20zquGBCyOQq9ahRSa3fofk8owNY3K17+oZ8d39CbOBW\nLnEXVXk69WGXjTtrHUITYkGRECzmRWhjJtQPDISykTmZgDI/aWcZYvRo+EExURsv\ns5u2mAPwLGViHYsWnQHzzLSZCum3u3dq2603/ytoxr5jlLoIqY7FobEGJV8fwU6M\nrC+SjetwhietOp5sCK81iAdgpl4gm3TNsYO/OlSCgQKBgQDCIVjiyqlqK4fx32C6\n1Wlw/v5GzfDnezgX0kGLj3F/oi4Cfr7sne3Sk3oQ/hN+PVyUv/dAD1jajQbrEndw\nLO91VBE7cGL/n5kXFUZm/eBvJ3cooevspQugTK+mB9rrghXyf2QucgQNc8t6fmNS\nrheAS8E0oVIJFWpO44nPdZ0GdQKBgQC7gnrk863uwhIkr+5uC8DSx52dthGCLwf4\nf3QF1/v+85xv52ZJ4ibjTQ6aKdmru9Qa4E5dORIMFV0g7od4kh4tr4KExTmKbIaD\nvKLB25EIc/i/ImI/QDd1IcYXKfGez5sPxAOT+029p1syVLtLaupUX1h/BSIxpqLf\nsyXKKoLx0QKBgDf8Dfo5n+nya94hIXBAI4xmvUYGFjdrnZ2hES4CTCUWzFYD32O1\nl+Rmi4li/JQndg+f3NookuNUUG5ygOdkzhn0CJQvsR0vFaNGi2sgRB1KMF8Tc0pn\nvpaYBv/GvCe2+EVa37VVRD3s6v2EfXhWpIhnUGyxKUtdVa8yh4fAz2wRAoGAH5Ea\n0Vp4qJ5BYa3AjQQrhRCX50oUbn8ub1Y9mRJAWS534prpLH0HIPMDB08OVwv67D9g\n0e7eq+wYzod5hQHMVNKcPW/afQRCLQFfwRUOuIaVlM/cDFvqOiziZVnpVFwM9b2B\nALOo5cm736BGG683HdcjVdbuZ79u4gwNy5gWjVECgYAe1+KWIf0aXZHe7SILHm3r\nGQ9XEnEgOLXRkR66DZHk0zqHnvNWd5yusfUuQXANQTkDXLVRrn408nYO2cNNrjoj\nzJZ1f+SCLPukTkUZH5IadxlscO+z48wleu8/Z82lb6rIUE3+dnmoW5YdvWvt87CR\nE0wQKZGP9M90fLmg76paUg==\n-----END PRIVATE KEY-----\n",
+  "client_email": "earthengineaccess@ee-avantgiske.iam.gserviceaccount.com",
+  "client_id": "107221625330129396168",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/earthengineaccess%40ee-avantgiske.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
