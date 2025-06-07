@@ -5,17 +5,24 @@ import geemap
 import datetime
 import time
 from google.oauth2 import service_account
+os.environ['PROJ_LIB'] = r"C:/Users/pc/AppData/Local/Programs/Python/Python312/Lib/site-packages/pyproj/proj_dir/share/proj"
 
-# Required for pyproj (fixes PROJ errors on some systems)
-os.environ['PROJ_LIB'] = pyproj.datadir.get_data_dir()
 
-# Reusable NDVI function for a bounding box
+from pyproj import CRS
+print(CRS.from_epsg(4326))
+
+# ✅ Setup output directory
+OUT_DIR = './results'
+os.makedirs(OUT_DIR, exist_ok=True)
+
+# 🔄 Reusable NDVI function for a bounding box
 def generate_ndvi(min_lon, min_lat, max_lon, max_lat):
     print("🔄 Starting NDVI generation...")
 
-    filename = 'NDVI_latest.tif'
-    out_dir = './results'
-    out_file = os.path.join(out_dir, filename)
+    # Generate a unique filename with timestamp
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f'NDVI_{timestamp}.tif'
+    out_file = os.path.join(OUT_DIR, filename)
 
     # Authenticate Earth Engine
     service_account_email = 'earthengineaccess@ee-avantgiske.iam.gserviceaccount.com'
@@ -39,7 +46,7 @@ def generate_ndvi(min_lon, min_lat, max_lon, max_lat):
         end_date = datetime.date.today()
         start_date = end_date - datetime.timedelta(days=days)
         s2_filtered = (
-            ee.ImageCollection("COPERNICUS/S2")
+            ee.ImageCollection("COPERNICUS/S2_HARMONIZED")
             .filterBounds(roi)
             .filterDate(str(start_date), str(end_date))
             .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
@@ -60,7 +67,6 @@ def generate_ndvi(min_lon, min_lat, max_lon, max_lat):
     ndvi = s2_median.normalizedDifference(['B8', 'B4'])
 
     # Save to disk
-    os.makedirs(out_dir, exist_ok=True)
     print("⬇️ Downloading NDVI GeoTIFF locally...")
     geemap.download_ee_image(
         image=ndvi,
@@ -71,8 +77,7 @@ def generate_ndvi(min_lon, min_lat, max_lon, max_lat):
     )
     print(f"✅ NDVI GeoTIFF saved to: {out_file}")
 
-    # Optional EE export
-    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Optional EE export (can be removed if not needed)
     asset_id = f'projects/ee-avantgiske/assets/ndvi-exports/NDVI_{timestamp}'
     export_task = ee.batch.Export.image.toAsset(
         image=ndvi,
@@ -92,12 +97,13 @@ def generate_ndvi(min_lon, min_lat, max_lon, max_lat):
 
     print("✅ EE Export complete:", export_task.status().get('state'))
 
+    # ✅ Return filename to Flask app
     return {
         "filename": filename,
         "bbox": [min_lon, min_lat, max_lon, max_lat]
     }
 
-# ✅ Allow standalone execution
+# ✅ Allow standalone execution for testing
 # if __name__ == "__main__":
 #     # Sample bounding box for Nairobi (1 km x 1 km)
 #     min_lon = 36.813

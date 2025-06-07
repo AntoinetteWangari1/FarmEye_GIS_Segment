@@ -5,24 +5,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Leaflet and Draw CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="https://unpkg.com/leaflet-draw/dist/leaflet.draw.css" />
   <style>
     html, body { margin: 0; padding: 0; height: 100%; }
     #map { height: 92vh; width: 100%; }
     #segmentBtn { margin: 10px; padding: 8px 16px; }
-    .legend {
-      background: white;
-      padding: 10px;
-      font-size: 12px;
-      line-height: 1.5;
-      color: #333;
-    }
-    .legend-title {
-      font-weight: bold;
-      margin-bottom: 4px;
-    }
   </style>
 </head>
 <body>
@@ -30,9 +19,11 @@
 <button id="segmentBtn">Generate NDVI</button>
 <div id="map"></div>
 
-<!-- Leaflet JS and Plugins -->
+<!-- Scripts -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet-draw/dist/leaflet.draw.js"></script>
+<script src="https://unpkg.com/georaster"></script>
+<script src="https://unpkg.com/georaster-layer-for-leaflet"></script>
 
 <script>
 let drawnBBox = null;
@@ -66,10 +57,7 @@ const drawControl = new L.Control.Draw({
 map.addControl(drawControl);
 
 // Layer Control
-const baseLayers = {
-  'OpenStreetMap': osm,
-  'Esri World Imagery': esri
-};
+const baseLayers = { 'OpenStreetMap': osm, 'Esri World Imagery': esri };
 const overlays = {};
 const layerControl = L.control.layers(baseLayers, overlays).addTo(map);
 
@@ -80,19 +68,7 @@ map.on(L.Draw.Event.CREATED, function (e) {
   drawnBBox = e.layer.getBounds();
 });
 
-// Legend from GeoServer
-const legend = L.control({ position: 'bottomright' });
-legend.onAdd = function () {
-  const div = L.DomUtil.create('div', 'legend');
-  div.innerHTML = `
-    <div class="legend-title">NDVI Legend</div>
-    <img src="http://localhost:8080/geoserver/FarmEyeNDVI/wms?service=WMS&version=1.1.0&request=GetLegendGraphic&format=image/png&layer=FarmEyeNDVI:NDVI_latest" alt="Legend" style="width: 120px; border:1px solid #ccc;">
-  `;
-  return div;
-};
-legend.addTo(map);
-
-// NDVI WMS Request Trigger
+// NDVI Request Trigger
 document.getElementById('segmentBtn').addEventListener('click', async () => {
   if (!drawnBBox) {
     alert("Please draw a bounding box first.");
@@ -110,9 +86,7 @@ document.getElementById('segmentBtn').addEventListener('click', async () => {
     const res = await fetch('/run_ndvi', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        min_lat, max_lat, min_lon, max_lon
-      })
+      body: JSON.stringify({ min_lat, max_lat, min_lon, max_lon })
     });
 
     const data = await res.json();
@@ -121,27 +95,63 @@ document.getElementById('segmentBtn').addEventListener('click', async () => {
       return;
     }
 
-    // Remove previous WMS layer
+    // Remove previous NDVI layer
     if (ndviLayer) {
       map.removeLayer(ndviLayer);
       layerControl.removeLayer(ndviLayer);
     }
 
-    // Add GeoServer NDVI WMS layer
-    ndviLayer = L.tileLayer.wms("http://localhost:8080/geoserver/FarmEyeNDVI/wms", {
-      layers: "FarmEyeNDVI:NDVI_latest",
-      format: "image/png",
-      transparent: true,
-      version: "1.1.0",
-      attribution: "GeoServer NDVI",
-      styles: ""
-    }).addTo(map);
+    // Load the new NDVI GeoTIFF dynamically
+    const tiffUrl = `/results/${data.filename}`;
+    const response = await fetch(tiffUrl);
+    const arrayBuffer = await response.arrayBuffer();
 
+    const georaster = await parseGeoraster(arrayBuffer);
+
+    ndviLayer = new GeoRasterLayer({
+      georaster: georaster,
+      opacity: 0.7,
+      resolution: 64,
+      pixelValuesToColorFn: values => {
+        const ndvi = values[0];
+        if (ndvi === undefined || ndvi === null) return null;          
+        if (ndvi < 0.2) return '#ff0000';    
+        if (ndvi < 0.4) return '#ff7f00';     
+        if (ndvi < 0.6) return '#ffff00';     
+        if (ndvi < 0.8) return '#7fff00';     
+        return '#006400';   
+      }
+    });
+
+    ndviLayer.addTo(map);
     layerControl.addOverlay(ndviLayer, "NDVI Raster");
-    map.fitBounds([
-      [min_lat, min_lon],
-      [max_lat, max_lon]
-    ]);
+    map.fitBounds(ndviLayer.getBounds());
+
+    const legend = L.control({ position: "bottomright" });
+    legend.onAdd = function(map) {
+      const div = L.DomUtil.create("div", "info legend");
+      div.style.backgroundColor = "white";
+      div.style.padding = "10px";
+      div.style.borderRadius = "8px";
+      div.style.boxShadow = "0 2px 6px rgba(0,0,0,0.3)";
+      div.style.fontSize = "14px";
+      div.style.lineHeight = "18px";
+
+      const grades = ["0-0.2", "0.2-0.4", "0.4-0.6", "0.6-0.8", ">0.8"];
+      const colors = ["#ff0000", "#ff7f00", "#ffff00", "#7fff00", "#006400"];
+      const labels = ["Poor", "Moderate", "Good", "Very Good", "Optimum"];
+      
+      for (let i = 0; i < grades.length; i++) {
+        div.innerHTML +=
+          `<i style="background:${colors[i]}; width: 18px; height: 18px; display: inline-block; margin-right: 5px;"></i> ${labels[i]}<br>`;
+      }
+      return div;
+    };
+    legend.addTo(map);
+
+
+    // Clear the drawn box
+    drawnItems.clearLayers();
 
   } catch (err) {
     alert("Request failed: " + err);
